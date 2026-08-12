@@ -174,10 +174,17 @@ final class SoundFactory {
                     envelope(t, attack: 0.02, total: d, release: 0.2)
             }
         case .pickup:
-            // bright double blip
-            return tone(duration: 0.16) { t, d in
-                let f: Double = t < 0.07 ? 880 : 1320
-                return sin(2 * .pi * f * t) * envelope(t, attack: 0.003, total: d, release: 0.05) * 0.45
+            // bright double blip; each segment gets its own half-sine
+            // window so the frequency switch can't click
+            return tone(duration: 0.16) { t, _ in
+                if t < 0.065 {
+                    return sin(2 * .pi * 880 * t) * sin(.pi * t / 0.065) * 0.45
+                }
+                if t >= 0.07 {
+                    let u = t - 0.07
+                    return sin(2 * .pi * 1320 * u) * sin(.pi * min(1, u / 0.09)) * 0.45
+                }
+                return 0
             }
         case .button:
             return tone(duration: 0.05) { t, d in

@@ -213,7 +213,8 @@ final class PlatformNode: SKSpriteNode {
     private var verticalSpeed: CGFloat = 0
 
     // exploding platforms: armed once on screen, then a short fuse
-    private var fuseRemaining: TimeInterval = Tuning.explodingFuse
+    private var fuseRemaining: TimeInterval =
+        Tuning.explodingRedDelay + Tuning.explodingBoomDelay
     private var armed = false
     private var turnedRed = false
 
@@ -282,7 +283,7 @@ final class PlatformNode: SKSpriteNode {
             }
             if armed {
                 fuseRemaining -= dt
-                if !turnedRed, fuseRemaining < Tuning.explodingFuse * 0.55 {
+                if !turnedRed, fuseRemaining < Tuning.explodingBoomDelay {
                     turnedRed = true
                     texture = ArtFactory.platformRedTex
                     run(.repeatForever(.sequence([.fadeAlpha(to: 0.55, duration: 0.09),

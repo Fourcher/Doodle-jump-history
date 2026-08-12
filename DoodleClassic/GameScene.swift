@@ -255,12 +255,12 @@ final class GameScene: SKScene {
             handlePauseOverlayTap(camPoint)
             return
         }
+        guard state == .playing else { return }
         if pauseButton.calculateAccumulatedFrame().insetBy(dx: -16, dy: -16)
             .contains(camPoint) {
             requestPause()
             return
         }
-        guard state == .playing else { return }
 
         // a touch that starts on a movable platform drags it instead of shooting
         let worldPoint = touch.location(in: world)

@@ -171,7 +171,7 @@ enum ArtFactory {
             for i in 0...5 {
                 let t = CGFloat(i) / 5
                 pts.append(CGPoint(x: 18 - t * 12 + w.spread(1),
-                                   y: 10 + CGFloat(dy) * t - t * 4))
+                                   y: 11 + CGFloat(dy) * t - t * 4))
             }
             strokeInk(ctx, points: pts, width: 1.6, jitter: 0.5, wobble: &w)
             ctx.setFillColor(bodyGreenDark.cgColor)
@@ -207,7 +207,7 @@ enum ArtFactory {
             for i in 0...5 {
                 let t = CGFloat(i) / 5
                 pts.append(CGPoint(x: 23 + CGFloat(sx) * (5 + sin(t * 5) * 3),
-                                   y: 8 - t * 7))
+                                   y: 10 - t * 7))
             }
             strokeInk(ctx, points: pts, width: 1.6, jitter: 0.5, wobble: &w)
             ctx.setFillColor(bodyGreenDark.cgColor)
@@ -502,17 +502,17 @@ enum ArtFactory {
     static let monsterWingedFrames = [monsterWinged(frame: 0), monsterWinged(frame: 1)]
 
     /// Tall wobbling monster with three stacked eyes.
-    static let monsterTall: SKTexture = texture(size: CGSize(width: 40, height: 56), seed: 65) { ctx, w in
+    static let monsterTall: SKTexture = texture(size: CGSize(width: 40, height: 60), seed: 65) { ctx, w in
         var outline: [CGPoint] = []
         for i in 0...40 {
             let t = CGFloat(i) / 40
             let a = .pi * 2 * t
             let r: CGFloat = 16 + sin(a * 5) * 2.2
-            outline.append(CGPoint(x: 20 + r * cos(a) * 0.9, y: 28 + r * sin(a) * 1.6))
+            outline.append(CGPoint(x: 20 + r * cos(a) * 0.9, y: 30 + r * sin(a) * 1.6))
         }
         fillAndInk(ctx, points: outline, fill: monsterTeal, inkWidth: 2, jitter: 0.9, wobble: &w)
         for i in 0..<3 {
-            let ey = 12 + CGFloat(i) * 13
+            let ey = 14 + CGFloat(i) * 13
             let eye = ellipsePoints(in: CGRect(x: 14, y: ey, width: 12, height: 10))
             fillAndInk(ctx, points: eye, fill: .white, inkWidth: 1.4, jitter: 0.4, wobble: &w)
             ctx.setFillColor(ink.cgColor)
