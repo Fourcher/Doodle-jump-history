@@ -90,14 +90,32 @@ final class LevelGenerator {
         }
     }
 
-    /// How far clear of every keep-out box a rung at (x, y) would be.
+    /// How far clear of every keep-out box a platform at (x, y) would be.
     /// Negative means it overlaps one.
+    ///
+    /// This tests the hero's standing position as well as the platform
+    /// itself: landing lifts the hero 28 pt, which can carry them into a
+    /// hazard hanging above a platform whose own outline looks clear.
     private func clearance(x: CGFloat, y: CGFloat) -> CGFloat {
+        let standY = y + Tuning.platformSize.height / 2 + 21
         var worst = CGFloat.greatestFiniteMagnitude
-        for k in keepOuts where abs(y - k.position.y) < k.radiusY {
-            worst = min(worst, abs(x - k.position.x) - k.radiusX)
+        for k in keepOuts {
+            for probeY in [y, standY] where abs(probeY - k.position.y) < k.radiusY {
+                worst = min(worst, abs(x - k.position.x) - k.radiusX)
+            }
         }
         return worst
+    }
+
+    /// A decoy position clear of every committed hazard, or nil if there is
+    /// no room. A decoy is never worth dropping onto a black hole.
+    private func safeSideX(away x: CGFloat, minDistance: CGFloat,
+                           y: CGFloat) -> CGFloat? {
+        for _ in 0..<8 {
+            let sx = wallClampedX(away: x, minDistance: minDistance)
+            if clearance(x: sx, y: y) >= 0 { return sx }
+        }
+        return nil
     }
 
     /// Choose the rung's x within jumping reach of the last one, avoiding
@@ -174,27 +192,12 @@ final class LevelGenerator {
         platforms.append(PlatformSpec(kind: kind, position: CGPoint(x: x, y: y),
                                       boost: boost, moveSpeed: moveSpeed))
 
-        // --- side platforms: extra greens early, decoys later ---
-        if f < 0.3 && chance(0.5 - f) {
-            let sx = wallClampedX(away: x, minDistance: 80)
-            platforms.append(PlatformSpec(kind: .green,
-                                          position: CGPoint(x: sx, y: y + random(8...30)),
-                                          boost: nil))
-        }
-        if chance(0.10 + 0.45 * f) {
-            let sx = wallClampedX(away: x, minDistance: 70)
-            platforms.append(PlatformSpec(kind: .brown,
-                                          position: CGPoint(x: sx, y: y + random(20...44)),
-                                          boost: nil))
-        }
-        if altitude > 3000, chance(0.02 + 0.13 * f) {
-            let sx = wallClampedX(away: x, minDistance: 70)
-            platforms.append(PlatformSpec(kind: .exploding,
-                                          position: CGPoint(x: sx, y: y + random(24...50)),
-                                          boost: nil))
-        }
-
         // --- hazards: well separated, never on the rung itself ---
+        // Rolled before the decoys below so their keep-out boxes exist in
+        // time to steer those decoys clear. An exploding platform is
+        // landable, so one sitting inside a black hole is a real trap —
+        // and often a well-hidden one, since the hole's drawn spiral is
+        // smaller than its capture radius.
         if y - lastHazardY > 500 {
             hazards = rollHazards(f: f, altitude: altitude, rungX: x, y: y)
             if !hazards.isEmpty {
@@ -202,6 +205,32 @@ final class LevelGenerator {
                 for hazard in hazards {
                     recordKeepOut(hazard.kind, at: hazard.position)
                 }
+            }
+        }
+
+        // --- side platforms: extra greens early, decoys later ---
+        if f < 0.3 && chance(0.5 - f) {
+            let sy = y + random(8...30)
+            if let sx = safeSideX(away: x, minDistance: 80, y: sy) {
+                platforms.append(PlatformSpec(kind: .green,
+                                              position: CGPoint(x: sx, y: sy),
+                                              boost: nil))
+            }
+        }
+        if chance(0.10 + 0.45 * f) {
+            let sy = y + random(20...44)
+            if let sx = safeSideX(away: x, minDistance: 70, y: sy) {
+                platforms.append(PlatformSpec(kind: .brown,
+                                              position: CGPoint(x: sx, y: sy),
+                                              boost: nil))
+            }
+        }
+        if altitude > 3000, chance(0.02 + 0.13 * f) {
+            let sy = y + random(24...50)
+            if let sx = safeSideX(away: x, minDistance: 70, y: sy) {
+                platforms.append(PlatformSpec(kind: .exploding,
+                                              position: CGPoint(x: sx, y: sy),
+                                              boost: nil))
             }
         }
 
