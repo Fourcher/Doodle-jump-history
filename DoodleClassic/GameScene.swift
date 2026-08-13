@@ -701,6 +701,7 @@ final class GameScene: SKScene {
         SoundFactory.shared.play(.fall)
         hero.endFlight()
         hero.shootPoseRemaining = 0
+        hero.goLimp()
         hero.velocity = CGVector(dx: 0, dy: 260)   // sad little rebound
         for monster in monsters { monster.removeAllActions() }
         run(.sequence([.wait(forDuration: 1.6),

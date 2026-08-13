@@ -195,7 +195,21 @@ final class HeroNode: SKSpriteNode {
         run(.scaleY(to: 1.0, duration: 0.12), withKey: "squash")
     }
 
+    /// Knocked out by a monster: swap to the limp sprite and stop posing.
+    func goLimp() {
+        removeAction(forKey: "flip")
+        removeAction(forKey: "squash")
+        zRotation = 0
+        yScale = abs(yScale)
+        texture = ArtFactory.heroTumbled
+        size = ArtFactory.heroTumbled.size()
+        isLimp = true
+    }
+
+    private(set) var isLimp = false
+
     func updatePose() {
+        guard !isLimp else { return }
         if shootPoseRemaining > 0 {
             texture = ArtFactory.heroUp
             xScale = abs(xScale)

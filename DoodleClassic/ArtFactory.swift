@@ -232,6 +232,57 @@ enum ArtFactory {
                    inkWidth: 1.5, jitter: 0.4, wobble: &w)
     }
 
+    /// Knocked-out hero: X eyes, legs splayed, tongue out. Used for the
+    /// limp tumble after a monster hit and on the game-over card.
+    static let heroTumbled: SKTexture = texture(size: CGSize(width: 50, height: 46), seed: 13) { ctx, w in
+        // legs sticking out at silly angles
+        for (dx, dy) in [(-1.0, -1.0), (1.0, -1.0)] {
+            let lx = 25 + CGFloat(dx) * 13
+            strokeInk(ctx, points: [CGPoint(x: lx, y: 30),
+                                    CGPoint(x: lx + CGFloat(dx) * 12, y: 30 + CGFloat(dy) * 10)],
+                      width: 2.6, jitter: 0.6, wobble: &w)
+        }
+        // limp antennae drooping down
+        for sx in [-1.0, 1.0] {
+            var pts: [CGPoint] = []
+            for i in 0...5 {
+                let t = CGFloat(i) / 5
+                pts.append(CGPoint(x: 25 + CGFloat(sx) * (6 + t * 10),
+                                   y: 11 + t * t * 9))
+            }
+            strokeInk(ctx, points: pts, width: 1.6, jitter: 0.5, wobble: &w)
+            ctx.setFillColor(bodyGreenDark.cgColor)
+            ctx.fillEllipse(in: CGRect(x: pts[5].x - 2.2, y: pts[5].y - 2.2, width: 4.4, height: 4.4))
+        }
+        let body = ellipsePoints(in: CGRect(x: 8, y: 9, width: 34, height: 28))
+        fillAndInk(ctx, points: body, fill: bodyGreen, inkWidth: 2.2, jitter: 0.9, wobble: &w)
+        // X eyes
+        for sx in [-1.0, 1.0] {
+            let ex = 25 + CGFloat(sx) * 8
+            strokeInk(ctx, points: [CGPoint(x: ex - 4, y: 17), CGPoint(x: ex + 4, y: 25)],
+                      width: 2.0, jitter: 0.4, wobble: &w)
+            strokeInk(ctx, points: [CGPoint(x: ex + 4, y: 17), CGPoint(x: ex - 4, y: 25)],
+                      width: 2.0, jitter: 0.4, wobble: &w)
+        }
+        // lolling tongue
+        let tongue = ellipsePoints(in: CGRect(x: 22, y: 29, width: 7, height: 10), steps: 20)
+        fillAndInk(ctx, points: tongue, fill: UIColor(red: 0.85, green: 0.42, blue: 0.45, alpha: 1),
+                   inkWidth: 1.4, jitter: 0.4, wobble: &w)
+    }
+
+    /// A short hand-drawn rule for separating sections on a paper card.
+    static func dashRule(width: CGFloat) -> SKTexture {
+        texture(size: CGSize(width: width, height: 6), seed: 107) { ctx, w in
+            var x: CGFloat = 2
+            while x < width - 6 {
+                strokeInk(ctx, points: [CGPoint(x: x, y: 3), CGPoint(x: x + 5, y: 3)],
+                          width: 1.4, jitter: 0.5, wobble: &w, passes: 1,
+                          color: UIColor(white: 0.55, alpha: 0.9))
+                x += 9
+            }
+        }
+    }
+
     // MARK: - platforms
 
     private static func platformTexture(fill: UIColor, seed: UInt64,
