@@ -262,6 +262,7 @@ final class PlatformNode: SKSpriteNode {
         super.init(texture: tex, color: .clear, size: tex.size())
         position = spec.position
         baseY = spec.position.y
+        previousTopY = spec.position.y + Tuning.platformSize.height / 2
         zPosition = 10
         if spec.kind == .blue {
             let speed = spec.moveSpeed
@@ -289,9 +290,16 @@ final class PlatformNode: SKSpriteNode {
     var topY: CGFloat { position.y + Tuning.platformSize.height / 2 }
     var halfWidth: CGFloat { Tuning.platformSize.width / 2 }
 
+    /// Where the top surface was before this frame's movement. Moving
+    /// platforms need this: testing the hero's previous feet against the
+    /// platform's *new* top lets a rising platform slip past the feet
+    /// between frames, and the hero falls straight through it.
+    private(set) var previousTopY: CGFloat = 0
+
     /// Per-frame movement + fuse logic. `cameraTop` is the world y of the
     /// top of the view, used to arm exploding platforms when they appear.
     func update(dt: TimeInterval, cameraTop: CGFloat) {
+        previousTopY = topY
         if slideVelocity != 0 {
             position.x += slideVelocity * CGFloat(dt)
             let bound = GameGeometry.worldWidth - halfWidth - 4

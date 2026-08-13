@@ -448,6 +448,12 @@ final class GameScene: SKScene {
             hero.velocity.dy = max(hero.velocity.dy, Tuning.maxFallSpeed)
         }
 
+        // Platforms move first and remember where their tops were, so the
+        // landing test below sweeps both bodies over the same interval.
+        let cameraTop = cam.position.y + size.height / 2
+        for platform in platforms { platform.update(dt: dt, cameraTop: cameraTop) }
+        platforms.removeAll { $0.parent == nil }
+
         let previousFeet = hero.position.y - hero.feetOffset
         hero.position.x += hero.velocity.dx * CGFloat(dt)
         hero.position.y += hero.velocity.dy * CGFloat(dt)
@@ -464,9 +470,6 @@ final class GameScene: SKScene {
         }
         collectPickups()
 
-        let cameraTop = cam.position.y + size.height / 2
-        for platform in platforms { platform.update(dt: dt, cameraTop: cameraTop) }
-        platforms.removeAll { $0.parent == nil }
         for monster in monsters { monster.update(dt: dt) }
         for ufo in ufos { ufo.update(dt: dt) }
         for pellet in pellets { pellet.update(dt: dt) }
@@ -480,6 +483,12 @@ final class GameScene: SKScene {
         }
         // black holes always win, even over a jetpack
         resolveBlackHoles(dt: dt)
+
+        // A death may have just fired. Everything below is for a live run —
+        // in particular updateAmbientLoops would immediately restart the
+        // warble of the very monster that just killed you, undoing the
+        // stopAllLoops() the death path just performed.
+        guard state == .playing else { return }
 
         // camera rises with the hero, never sinks
         if hero.position.y > cam.position.y {
@@ -526,7 +535,7 @@ final class GameScene: SKScene {
     private func resolveLanding(previousFeet: CGFloat, feet: CGFloat) {
         for platform in platforms where !platform.isSpent {
             let top = platform.topY
-            guard previousFeet >= top - 1, feet <= top,
+            guard previousFeet >= platform.previousTopY - 1, feet <= top,
                   abs(hero.position.x - platform.position.x)
                       < platform.halfWidth + hero.halfWidth * 0.6 else { continue }
 
@@ -760,10 +769,12 @@ final class GameScene: SKScene {
                 return
             }
             if dist < hole.pullRadius, dist > 0 {
+                // Applied as displacement, linear in dt. Adding to
+                // velocity.dx would be dead code: tilt overwrites it at the
+                // top of every frame, before it is ever integrated.
                 let strength: CGFloat = 250 * (1 - dist / hole.pullRadius)
-                hero.velocity.dx += dx / dist * strength * CGFloat(dt) * 4
-                hero.position.x += dx / dist * strength * CGFloat(dt) * CGFloat(dt) * 30
-                hero.position.y += dy / dist * strength * CGFloat(dt) * CGFloat(dt) * 30
+                hero.position.x += dx / dist * strength * CGFloat(dt)
+                hero.position.y += dy / dist * strength * CGFloat(dt)
             }
         }
     }

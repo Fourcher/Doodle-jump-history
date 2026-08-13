@@ -55,6 +55,78 @@ final class LevelGenerator {
 
     private let margin: CGFloat = 34   // keep platforms clear of the walls
 
+    /// A hazard sits 80–250 pt above the rung it was placed against, which
+    /// is exactly where later rungs get generated. Without a memory of where
+    /// hazards went, a black hole could land squarely on a platform the
+    /// player has no choice but to aim for — and a black hole cannot be shot
+    /// and ignores both the shield and powered flight. Every hazard
+    /// therefore records a keep-out box that later rungs must avoid.
+    private struct KeepOut {
+        let position: CGPoint
+        let radiusX: CGFloat
+        let radiusY: CGFloat
+    }
+    private var keepOuts: [KeepOut] = []
+
+    private func recordKeepOut(_ kind: HazardKind, at position: CGPoint) {
+        // Radii cover the hazard's lethal reach plus half a platform plus
+        // half the hero, so no landable spot on the rung is inside it.
+        let padding = Tuning.platformSize.width / 2 + 15
+        switch kind {
+        case .blackHole:
+            keepOuts.append(KeepOut(position: position,
+                                    radiusX: Tuning.blackHoleCaptureRadius + padding,
+                                    radiusY: Tuning.blackHoleCaptureRadius + 35))
+        case .ufo:
+            // The abduction beam hangs 66 pt below the saucer and widens
+            // as it falls, so the box reaches downward.
+            keepOuts.append(KeepOut(position: CGPoint(x: position.x, y: position.y - 33),
+                                    radiusX: 28 + padding,
+                                    radiusY: 52))
+        case .monsterWinged, .monsterTall, .monsterFlier:
+            keepOuts.append(KeepOut(position: position,
+                                    radiusX: 22 + padding,
+                                    radiusY: 30))
+        }
+    }
+
+    /// How far clear of every keep-out box a rung at (x, y) would be.
+    /// Negative means it overlaps one.
+    private func clearance(x: CGFloat, y: CGFloat) -> CGFloat {
+        var worst = CGFloat.greatestFiniteMagnitude
+        for k in keepOuts where abs(y - k.position.y) < k.radiusY {
+            worst = min(worst, abs(x - k.position.x) - k.radiusX)
+        }
+        return worst
+    }
+
+    /// Choose the rung's x within jumping reach of the last one, avoiding
+    /// any hazard already committed at this altitude.
+    private func safeRungX(near previousX: CGFloat, y: CGFloat) -> CGFloat {
+        let reach: CGFloat = 130
+        let lo = max(margin, previousX - reach)
+        let hi = min(GameGeometry.worldWidth - margin, previousX + reach)
+        guard hi > lo else {
+            return max(margin, min(GameGeometry.worldWidth - margin, previousX))
+        }
+        for _ in 0..<12 {
+            let candidate = random(lo...hi)
+            if clearance(x: candidate, y: y) >= 0 { return candidate }
+        }
+        // Nothing clean within reach: take the roomiest spot available
+        // rather than dropping the player onto a hazard.
+        var best = lo
+        var bestClearance = -CGFloat.greatestFiniteMagnitude
+        var probe = lo
+        let step = max(4, (hi - lo) / 24)
+        while probe <= hi {
+            let c = clearance(x: probe, y: y)
+            if c > bestClearance { bestClearance = c; best = probe }
+            probe += step
+        }
+        return best
+    }
+
     init(startY: CGFloat) {
         topY = startY
     }
@@ -88,11 +160,11 @@ final class LevelGenerator {
         let kind = rungKind(f: f, altitude: altitude)
         let moveSpeed = 40 + 60 * f * f   // blue/gray get faster with height
 
-        // keep consecutive rungs horizontally reachable at speed
-        let reach: CGFloat = 130
-        let x = max(margin, min(GameGeometry.worldWidth - margin,
-                                lastRungX + random(-reach...reach)))
+        // Reachable from the last rung, and clear of any hazard already
+        // committed at this height.
+        let x = safeRungX(near: lastRungX, y: y)
         lastRungX = x
+        keepOuts.removeAll { $0.position.y < y - 700 }
 
         // --- boost on static or sliding rungs ---
         var boost: BoostKind? = nil
@@ -125,7 +197,12 @@ final class LevelGenerator {
         // --- hazards: well separated, never on the rung itself ---
         if y - lastHazardY > 500 {
             hazards = rollHazards(f: f, altitude: altitude, rungX: x, y: y)
-            if !hazards.isEmpty { lastHazardY = y }
+            if !hazards.isEmpty {
+                lastHazardY = y
+                for hazard in hazards {
+                    recordKeepOut(hazard.kind, at: hazard.position)
+                }
+            }
         }
 
         topY = y
@@ -186,12 +263,21 @@ final class LevelGenerator {
                                position: CGPoint(x: hx, y: y + random(60...110)))]
         }
         if roll < monsterChance + ufoChance {
+            // The saucer's beam hangs 66 pt below it, so it has to clear the
+            // rung horizontally as well as sit high enough that the beam's
+            // mouth is above the arc of a jump taken from that rung.
+            let hx = wallClampedX(away: rungX, minDistance: 70)
             let first = HazardSpec(kind: .ufo,
-                                   position: CGPoint(x: random(70...150), y: y + random(120...170)))
+                                   position: CGPoint(x: hx, y: y + random(200...250)))
             // double-UFO formations arrive high up
             if altitude > 20_000, chance(0.25) {
+                let offset: CGFloat = hx < GameGeometry.worldWidth / 2
+                    ? random(110...150)
+                    : -random(110...150)
+                let secondX = max(margin,
+                                  min(GameGeometry.worldWidth - margin, hx + offset))
                 let second = HazardSpec(kind: .ufo,
-                                        position: CGPoint(x: first.position.x + random(110...150),
+                                        position: CGPoint(x: secondX,
                                                           y: first.position.y + random(-20...20)))
                 return [first, second]
             }
