@@ -159,7 +159,7 @@ final class GameScene: SKScene {
             world.addChild(line)
 
             let label = SKLabelNode(fontNamed: "MarkerFelt-Thin")
-            label.text = "\(entry.name) · \(entry.score)"
+            label.text = isBest ? "best · \(entry.score)" : "\(entry.score)"
             label.fontSize = isBest ? 12 : 10
             label.fontColor = color
             label.horizontalAlignmentMode = .right
@@ -731,7 +731,7 @@ final class GameScene: SKScene {
     private func startAbduction(by ufo: UFONode) {
         state = .abducted
         SoundFactory.shared.stopAllLoops()
-        SoundFactory.shared.play(.blackHole)
+        SoundFactory.shared.play(.abduct)
         hero.endFlight()
         let rise = SKAction.move(to: CGPoint(x: ufo.position.x, y: ufo.position.y - 6),
                                  duration: 0.8)
@@ -783,12 +783,15 @@ final class GameScene: SKScene {
 
     private func updateAmbientLoops() {
         let half = size.height / 2
-        // the warble starts before the monster scrolls into view — the
-        // classic early-warning system
+        // The warble starts shortly before the monster scrolls into view —
+        // the classic early-warning system. The lead is deliberately short
+        // (about a fifth of a screen): far enough to warn, close enough that
+        // the sound never plays with nothing visible to explain it.
+        let lead: CGFloat = 90
         let monsterNear = monsters.contains {
             !$0.isDead &&
             $0.position.y > cam.position.y - half - 40 &&
-            $0.position.y < cam.position.y + half + 250
+            $0.position.y < cam.position.y + half + lead
         }
         if monsterNear { SoundFactory.shared.start(.monster) }
         else { SoundFactory.shared.stop(.monster) }
@@ -796,7 +799,7 @@ final class GameScene: SKScene {
         let ufoNear = ufos.contains {
             !$0.isDead &&
             $0.position.y > cam.position.y - half - 40 &&
-            $0.position.y < cam.position.y + half + 250
+            $0.position.y < cam.position.y + half + lead
         }
         if ufoNear { SoundFactory.shared.start(.ufo) }
         else { SoundFactory.shared.stop(.ufo) }

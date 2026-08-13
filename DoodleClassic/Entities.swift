@@ -84,7 +84,7 @@ final class HeroNode: SKSpriteNode {
         jetpackOverlay.removeAllActions()
         jetpackOverlay.run(.repeatForever(.animate(with: ArtFactory.jetpackFrames,
                                                    timePerFrame: 0.06)))
-        SoundFactory.shared.start(.rocket)
+        SoundFactory.shared.start(.jetpack)
     }
 
     func endFlight() {
@@ -94,7 +94,7 @@ final class HeroNode: SKSpriteNode {
         jetpackOverlay.isHidden = true
         jetpackOverlay.removeAllActions()
         SoundFactory.shared.stop(.propeller)
-        SoundFactory.shared.stop(.rocket)
+        SoundFactory.shared.stop(.jetpack)
     }
 
     func beginSpringShoes() {
@@ -138,7 +138,7 @@ final class HeroNode: SKSpriteNode {
         shieldRemaining = 0
         shieldOverlay.removeAllActions()
         shieldOverlay.isHidden = true
-        SoundFactory.shared.play(.whitePoof)
+        SoundFactory.shared.play(.shieldBreak)
     }
 
     /// Advance flight timers; returns true while still airborne on a boost.
@@ -279,12 +279,15 @@ final class PlatformNode: SKSpriteNode {
         if kind == .exploding, !isSpent {
             if !armed, position.y < cameraTop {
                 armed = true
-                SoundFactory.shared.play(.fuse)
             }
             if armed {
                 fuseRemaining -= dt
                 if !turnedRed, fuseRemaining < Tuning.explodingBoomDelay {
                     turnedRed = true
+                    // The sizzle starts only once the platform turns red, so
+                    // the sound always has a visible cause on screen and runs
+                    // exactly up to the bang.
+                    SoundFactory.shared.play(.fuse)
                     texture = ArtFactory.platformRedTex
                     run(.repeatForever(.sequence([.fadeAlpha(to: 0.55, duration: 0.09),
                                                   .fadeAlpha(to: 1.0, duration: 0.09)])),

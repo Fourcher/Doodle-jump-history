@@ -1,13 +1,12 @@
 import SpriteKit
 import UIKit
 
-/// The torn-paper end card: final score, best score, name entry when the
-/// run makes the local top ten, and the play again / menu buttons.
+/// The torn-paper end card: final score, best score, and the play again /
+/// menu buttons. Single-player, so the run records itself — no name box.
 final class GameOverScene: SKScene {
 
     private let finalScore: Int
     private let wasNewBest: Bool
-    private var submitted = false
 
     init(size: CGSize, score: Int) {
         finalScore = score
@@ -75,7 +74,9 @@ final class GameOverScene: SKScene {
         addButton(text: "play again", name: "again", y: size.height * 0.30)
         addButton(text: "menu", name: "menu", y: size.height * 0.30 - 56)
 
-        promptForNameIfNeeded()
+        if finalScore > 0 {
+            ScoreStore.submit(score: finalScore)
+        }
     }
 
     private func addButton(text: String, name: String, y: CGFloat) {
@@ -94,35 +95,6 @@ final class GameOverScene: SKScene {
         label.name = name
         container.addChild(label)
         addChild(container)
-    }
-
-    /// A run that makes the board gets the classic "enter your name" box.
-    private func promptForNameIfNeeded() {
-        guard finalScore > 0, !submitted else { return }
-        let board = ScoreStore.entries
-        let qualifies = board.count < 10 || finalScore > (board.last?.score ?? 0)
-        guard qualifies else {
-            submitted = true
-            return
-        }
-        let alert = UIAlertController(title: wasNewBest ? "new high score!" : "you made the board!",
-                                      message: "sign your doodle",
-                                      preferredStyle: .alert)
-        alert.addTextField { field in
-            field.text = ScoreStore.lastPlayerName
-            field.autocapitalizationType = .words
-        }
-        alert.addAction(UIAlertAction(title: "OK", style: .default) { [weak self, weak alert] _ in
-            guard let self else { return }
-            var name = alert?.textFields?.first?.text?
-                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            if name.isEmpty { name = "Doodler" }
-            name = String(name.prefix(12))
-            ScoreStore.lastPlayerName = name
-            ScoreStore.submit(name: name, score: self.finalScore)
-            self.submitted = true
-        })
-        view?.window?.rootViewController?.present(alert, animated: true)
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {

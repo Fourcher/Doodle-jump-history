@@ -1,16 +1,18 @@
 import Foundation
 
-/// Local top-10 leaderboard, kept in UserDefaults exactly like the era's
-/// games kept theirs on-device: a name and a score, nothing leaves the phone.
+/// Local top-10 leaderboard, kept in UserDefaults the way the era's games
+/// kept theirs: on-device, nothing leaves the phone.
+///
+/// This is a single-player cabinet, so runs are not signed with a name.
+/// Older saves stored a `name` alongside the score; because Codable ignores
+/// unknown keys, those entries still decode cleanly and keep their scores.
 struct ScoreEntry: Codable, Equatable {
-    let name: String
     let score: Int
 }
 
 enum ScoreStore {
 
     private static let scoresKey = "highScores"
-    private static let nameKey = "lastPlayerName"
 
     static var entries: [ScoreEntry] {
         guard let data = UserDefaults.standard.data(forKey: scoresKey),
@@ -21,23 +23,18 @@ enum ScoreStore {
 
     static var best: ScoreEntry? { entries.first }
 
-    static var lastPlayerName: String {
-        get { UserDefaults.standard.string(forKey: nameKey) ?? "Doodler" }
-        set { UserDefaults.standard.set(newValue, forKey: nameKey) }
-    }
-
     /// Inserts a run into the board. Returns the 1-based rank if it made
     /// the top ten, else nil.
     @discardableResult
-    static func submit(name: String, score: Int) -> Int? {
+    static func submit(score: Int) -> Int? {
         var list = entries
-        list.append(ScoreEntry(name: name, score: score))
+        list.append(ScoreEntry(score: score))
         list.sort { $0.score > $1.score }
         if list.count > 10 { list = Array(list.prefix(10)) }
         if let data = try? JSONEncoder().encode(list) {
             UserDefaults.standard.set(data, forKey: scoresKey)
         }
-        guard let rank = list.firstIndex(of: ScoreEntry(name: name, score: score))
+        guard let rank = list.firstIndex(of: ScoreEntry(score: score))
         else { return nil }
         return rank + 1
     }

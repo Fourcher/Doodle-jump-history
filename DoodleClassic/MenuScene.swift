@@ -47,7 +47,7 @@ final class MenuScene: SKScene {
 
         if let best = ScoreStore.best {
             let bestLabel = SKLabelNode(fontNamed: "MarkerFelt-Thin")
-            bestLabel.text = "best: \(best.score) — \(best.name)"
+            bestLabel.text = "best: \(best.score)"
             bestLabel.fontSize = 15
             bestLabel.fontColor = ArtFactory.ink
             bestLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.50 - 150)
@@ -153,7 +153,6 @@ final class ScoresScene: SKScene {
         for (i, entry) in entries.prefix(10).enumerated() {
             let y = size.height * 0.86 - CGFloat(i + 1) * rowHeight
             addText("\(i + 1).", x: 34, y: y, align: .left, bold: true)
-            addText(entry.name, x: 66, y: y, align: .left, bold: false)
             addText("\(entry.score)", x: size.width - 34, y: y, align: .right, bold: true)
         }
 
