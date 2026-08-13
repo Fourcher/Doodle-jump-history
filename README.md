@@ -58,16 +58,41 @@ reasoning.
 
 ## Build & install on your iPhone
 
-1. Open `DoodleClassic.xcodeproj` in Xcode.
-2. Select the *DoodleClassic* target → **Signing & Capabilities** → pick your
-   personal team (a free Apple ID works) and change the bundle identifier to
-   something unique to you if Xcode asks.
-3. Plug in your iPhone, select it as the run destination, press **Run**.
-4. On the phone: *Settings → General → VPN & Device Management* → trust your
-   developer certificate the first time.
+Two things must be done by hand once, because Apple offers no way to script
+them: install Xcode, and add your Apple ID under **Xcode → Settings →
+Accounts → +** (a free Apple ID is fine). After that, either path works.
 
-With a free (non-paid) Apple ID the app signature expires after 7 days —
-just press Run again to refresh it. A paid developer account signs for a year.
+### Option A — one command
+
+Plug in the iPhone, unlock it, accept **Trust This Computer**, then:
+
+```sh
+./scripts/install-to-iphone.sh
+```
+
+It finds your signing team and the attached device, builds, provisions, and
+installs the app. Useful overrides:
+
+```sh
+TEAM_ID=ABCDE12345 ./scripts/install-to-iphone.sh          # multiple teams
+BUNDLE_ID=com.yourname.DoodleClassic ./scripts/install-to-iphone.sh
+DEVICE_ID=00008120-... ./scripts/install-to-iphone.sh      # multiple devices
+```
+
+### Option B — the Xcode GUI
+
+1. Open `DoodleClassic.xcodeproj`.
+2. Select the *DoodleClassic* target → **Signing & Capabilities** → pick your
+   team, and change the bundle identifier if Xcode says it's taken.
+3. Choose your iPhone as the run destination and press **Run**.
+
+### Then, on the phone (first install only)
+
+*Settings → General → VPN & Device Management* → tap your Apple ID → **Trust**.
+
+With a free (non-paid) Apple ID the signature expires after 7 days — re-run
+the script (or press Run again) to refresh it. A paid developer account
+signs for a year.
 
 ## Project layout
 
