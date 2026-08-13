@@ -97,6 +97,18 @@ final class HeroNode: SKSpriteNode {
         SoundFactory.shared.stop(.jetpack)
     }
 
+    /// Pausing stops every loop, but a boost keeps its remaining time, so
+    /// the flight resumes silently unless its loop is re-armed. The ambient
+    /// hazard loops recover on their own because the scene re-asserts them
+    /// each frame; these two are only started at pickup.
+    func resumeFlightLoop() {
+        switch flight {
+        case .none: break
+        case .propeller: SoundFactory.shared.start(.propeller)
+        case .jetpack: SoundFactory.shared.start(.jetpack)
+        }
+    }
+
     func beginSpringShoes() {
         springShoeBouncesLeft = Tuning.springShoeBounces
         shoesOverlay.isHidden = false

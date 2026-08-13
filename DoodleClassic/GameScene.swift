@@ -389,6 +389,7 @@ final class GameScene: SKScene {
             gamePaused = false
             world.isPaused = false
             lastUpdate = 0
+            hero.resumeFlightLoop()
         } else if let node = overlay.childNode(withName: "menu"),
                   node.calculateAccumulatedFrame().insetBy(dx: -10, dy: -10).contains(point) {
             SoundFactory.shared.play(.button)
